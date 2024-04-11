@@ -12,6 +12,58 @@ module MrOdia
 
     def next_token
       skip_whitespace
+      return [nil, :EOF] if @position >= @input.length
+
+      case @input[@position]
+      when '"'
+        string_token
+      when /[a-zA-Z]/
+        identifier_or_keyword_token
+      else
+        [nil, :UNKNOWN]
+      end
+    end
+
+    private
+
+    def skip_whitespace
+      @position += 1 while @input[@position]&.match?(/\s/)
+    end
+
+    def string_token
+      start_pos = @position
+      advance
+      advance until @input[@position] == '"' || @input[@position].nil?
+      return [nil, :UNTERMINATED_STRING] if @input[@position].nil?
+
+      value = @input[start_pos + 1...@position]
+      advance
+      [value, :STRING]
+    end
+
+    def identifier_or_keyword_token
+      start_pos = @position
+      advance while @input[@position]&.match?(/[a-zA-Z]/)
+
+      value = @input[start_pos...@position]
+      [value, KEYWORDS[value] || :IDENTIFIER]
+    end
+
+    def advance
+      @position += 1
+    end
+  end
+end
+
+module MrOdia
+  class Lexer
+    def initialize(input)
+      @input = input
+      @position = 0
+    end
+
+    def next_token
+      skip_whitespace
       return [nil, :EOF] if eof?
 
       case current_char
